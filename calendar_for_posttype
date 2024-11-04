@@ -1,0 +1,186 @@
+<?php
+get_header(); 
+?>
+
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ru.js"></script>
+
+
+<script>
+jQuery(document).ready(function($) {
+    $("#date-range").flatpickr({
+        mode: "range",
+        dateFormat: "d.m.Y",             
+        locale: "ru",                     
+        allowInput: true,                 
+        onClose: function (selectedDates, dateStr, instance) {
+    $('#date-range').val(dateStr.replace(/\\+/g, ' ')); 
+},
+    });
+});
+</script>
+
+
+<style>
+    
+    .flatpickr-calendar {
+        color: #fff;
+        border: 1px solid #9F8556; 
+        border-radius: 8px;
+        font-family: Arial, sans-serif;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+ 
+    .flatpickr-calendar .flatpickr-day.selected,
+    .flatpickr-day.startRange,
+    .flatpickr-day.endRange {
+        background-color: #9F8556;
+        color: #fff;
+    }
+
+    .flatpickr-calendar .flatpickr-day.today {
+        border-color: #9F8556;
+    }
+
+    .flatpickr-calendar .flatpickr-time {
+        background-color: #444;
+    }
+
+    .flatpickr-calendar .flatpickr-day:hover {
+        background-color: #666;
+    }
+</style>
+
+
+<section id="breadcrumbs-section">
+    <div id="container-bread">
+        <?php if (function_exists('yoast_breadcrumb')) {
+            yoast_breadcrumb('<p id="breadcrumbs">', '</p>');
+        } ?>
+        <h1 style="color:#9F8556;"><?php the_archive_title(); ?></h1>
+    </div>
+</section>
+
+<div class="afisha-archive">
+    <div class="container" style="max-width: 1200px; margin: 0 auto; display: flex;">
+        
+       
+        <aside class="filter-section" style="width: 20%; padding-right: 20px;">
+            <h2 style="color: #9F8556;">Фильтры</h2>
+            <form id="filter-form" method="GET">
+                <label for="date-range" style="color: #ffffff;">Диапазон дат:</label>
+                <input type="text" id="date-range" name="date_range" placeholder="Введите интересующие даты" style="width: 80%; margin-bottom: 20px; padding: 10px; border-radius: 4px; background-color: #fff;" autocomplete="off">
+                
+                <button type="submit" style="width: 100%; background-color: #9F8556; color: #fff; padding: 10px; text-transform: uppercase;">Применить</button>
+            </form>
+        </aside>
+
+       
+        <div style="width: 80%;">
+            <div class="afisha-cards" style="display: flex; flex-wrap: wrap; gap: 20px; justify-content: flex-start;">
+                <?php
+                $paged = (get_query_var('paged')) ? get_query_var('paged') : 1;
+
+              
+                $date_range = isset($_GET['date_range']) ? sanitize_text_field($_GET['date_range']) : '';
+        $meta_query = array();
+                
+                if ($date_range) {
+  
+    list($start_date, $end_date) = explode(' — ', $date_range);
+   
+    $start_date = date('Y-m-d', strtotime(str_replace('.', '-', trim($start_date))));
+    $end_date = date('Y-m-d', strtotime(str_replace('.', '-', trim($end_date))));
+
+    $meta_query[] = array(
+        'key' => '_afisha_event_date',
+        'value' => array($start_date, $end_date),
+        'compare' => 'BETWEEN',
+        'type' => 'DATE'
+    );
+}
+
+    $afisha_query = new WP_Query(array(
+    'post_type' => 'afisha',
+    'posts_per_page' => 8,
+    'paged' => $paged,
+    'meta_query' => $meta_query,
+));
+
+
+                if ($afisha_query->have_posts()) :
+                    while ($afisha_query->have_posts()) : $afisha_query->the_post();
+
+                        
+                        $related_repertoire_id = get_post_meta(get_the_ID(), '_afisha_related_repertoire', true);
+
+                        
+                        $repertoire_title = $related_repertoire_id ? get_the_title($related_repertoire_id) : '';
+                        $age_limit = get_post_meta($related_repertoire_id, '_repertoire_age_limit', true);
+                        $event_date = get_post_meta(get_the_ID(), '_afisha_event_date', true);
+                        $formatted_date = date_i18n('j F', strtotime($event_date));
+                        $day_of_week = date_i18n('l', strtotime($event_date));
+                        $time = date_i18n('H:i', strtotime($event_date));
+                        ?>
+                        <div class="afisha-card" style="border: 1px solid #9F8556; padding: 20px; width: calc(25% - 20px); background-color: #000; color: #fff; box-sizing: border-box; position: relative;">
+                            <?php if (has_post_thumbnail($related_repertoire_id)) : ?>
+                                <a href="<?php the_permalink(); ?>" class="afisha-image" style="margin-bottom: 15px; display: block;">
+                                    <?php echo get_the_post_thumbnail($related_repertoire_id, 'full', array('style' => 'width: 100%; height: auto;')); ?>
+                                </a>
+                            <?php endif; ?>
+
+                            
+                            <div class="afisha-age-circle" style="position: absolute; top: -10px; right: -10px; background-color: #9F8556; color: #fff; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 5px #fff;">
+                                <?php echo esc_html($age_limit); ?>
+                            </div>
+
+                            <h3 style="color: #ffffff; margin-bottom: 10px;">
+                                <?php echo esc_html($repertoire_title); ?>
+                            </h3>
+
+                            <div class="afisha-card-content" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                                <div class="left" style="flex: 1; text-align: center;">
+                                    <div class="date" style="color: #ffffff;"><?php echo esc_html($formatted_date); ?></div>
+                                    <div class="day" style="color: #9F8556;"><?php echo esc_html($day_of_week); ?></div>
+                                </div>
+                                <div class="separator" style="width: 1px; background-color: #9F8556; height: 100%;"></div>
+                                <div class="right" style="flex: 1; text-align: center;">
+                                    <div class="start" style="color: #ffffff;">Начало</div>
+                                    <div class="time" style="font-size: 24px; color: #9F8556;"><?php echo esc_html($time); ?></div>
+                                </div>
+                            </div>
+
+                            <a href="<?php the_permalink(); ?>" class="afisha-more-button" style="display: block; background-color: #9F8556; color: #fff; text-align: center; padding: 10px; text-decoration: none; text-transform: uppercase;">
+                                Подробнее
+                            </a>
+                        </div>
+                    <?php
+                    endwhile;
+                    ?>
+                <?php else : ?>
+                    <p>Нет мероприятий за выбранный период.</p>
+                <?php endif; ?>
+
+                <?php wp_reset_postdata(); ?>
+            </div>
+
+            
+            <div class="pagination" style="margin-top: 30px; display: flex; justify-content: center;">
+                <?php
+                echo paginate_links(array(
+                    'total' => $afisha_query->max_num_pages,
+                    'prev_text' => 'Назад',
+                    'next_text' => 'Вперед',
+                    'current' => max(1, get_query_var('paged')),
+                    'type' => 'list',
+                ));
+                ?>
+            </div>
+        </div>
+    </div>
+</div>
+
+<?php get_footer(); ?>
